@@ -1,13 +1,19 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
 
 type Msg = { id: string; senderId: string; receiverId: string; content: string; createdAt: string }
 
-export default function ChatPage({ params }: { params: { userId: string } }) {
-  const otherId = params.userId
+export default function ChatPage() {
   const r = useRouter()
+  const params = useParams<{ userId?: string | string[] }>()
+  const otherId = useMemo(() => {
+    const v = params?.userId
+    if (!v) return ""
+    return Array.isArray(v) ? v[0] : v
+  }, [params])
+
   const [me, setMe] = useState<{ id: string; username: string } | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
   const [text, setText] = useState("")
@@ -26,6 +32,7 @@ export default function ChatPage({ params }: { params: { userId: string } }) {
   }
 
   async function loadMessages() {
+    if (!otherId) return
     try {
       const res = await fetch(`/api/messages/${otherId}`)
       const data = await res.json()
@@ -41,6 +48,7 @@ export default function ChatPage({ params }: { params: { userId: string } }) {
   }
 
   async function send() {
+    if (!otherId) return
     const content = text.trim()
     if (!content) return
     setText("")
@@ -69,18 +77,19 @@ export default function ChatPage({ params }: { params: { userId: string } }) {
       if (!m) return
       await loadMessages()
     })()
-  }, [])
+  }, [otherId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
 
   useEffect(() => {
+    if (!otherId) return
     const t = setInterval(() => {
       loadMessages()
     }, 2000)
     return () => clearInterval(t)
-  }, [])
+  }, [otherId])
 
   return (
     <main style={{ padding: 24, maxWidth: 820, margin: "0 auto" }}>
