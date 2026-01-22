@@ -16,7 +16,8 @@ export async function setSession(userId: string) {
     .setExpirationTime("14d")
     .sign(secret())
 
-  cookies().set(COOKIE_NAME, token, {
+  const jar = await cookies()
+  jar.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -25,8 +26,9 @@ export async function setSession(userId: string) {
   })
 }
 
-export function clearSession() {
-  cookies().set(COOKIE_NAME, "", {
+export async function clearSession() {
+  const jar = await cookies()
+  jar.set(COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -36,7 +38,8 @@ export function clearSession() {
 }
 
 export async function getUserIdFromSession(): Promise<string | null> {
-  const token = cookies().get(COOKIE_NAME)?.value
+  const jar = await cookies()
+  const token = jar.get(COOKIE_NAME)?.value
   if (!token) return null
   try {
     const { payload } = await jwtVerify(token, secret())
